@@ -6,5 +6,5 @@ metadata:
   labels:
     app: nextjs-app
 data:
-  MONGO_URI: "mongodb://admin:password@mongodb-service.nextjs-app.svc.cluster.local:27017/nextjsapp"
+  MONGO_URI: "mongodb://mongodb-service.nextjs-app.svc.cluster.local:27017/nextjsapp"
   SITE_URL: "http://nextjs-service.nextjs-app.svc.cluster.local:3000"
