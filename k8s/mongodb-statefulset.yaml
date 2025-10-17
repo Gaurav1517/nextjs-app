@@ -37,7 +37,18 @@ spec:
             secretKeyRef:
               name: mongodb-secret
               key: MONGO_INITDB_DATABASE
+        - name: MONGO_INITDB_ROOT_USERNAME_FILE
+          value: /etc/mongo-secret/username
+        - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+          value: /etc/mongo-secret/password
+        command:
+        - mongod
+        - --auth
+        - --bind_ip_all
         volumeMounts:
+        - name: mongo-secret
+          mountPath: /etc/mongo-secret
+          readOnly: true
         - name: mongodb-storage
           mountPath: /data/db
         resources:
@@ -58,6 +69,9 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       volumes:
+      - name: mongo-secret
+        secret:
+          secretName: mongodb-secret
       - name: mongodb-storage
         persistentVolumeClaim:
           claimName: mongodb-hostpath-pvc
