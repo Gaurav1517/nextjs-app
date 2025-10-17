@@ -8,7 +8,7 @@ const connectMongoDB = async () => {
   }
 
   try {
-    const connectionString = process.env.MONGO_URI || 'mongodb://mongodb:27017/nextjsapp';
+    const connectionString = process.env.MONGO_URI || 'mongodb://mongodb-service.nextjs-app.svc.cluster.local:27017/nextjsapp';
     await mongoose.connect(connectionString, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
