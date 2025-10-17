@@ -2,8 +2,38 @@ import mongoose, { Schema } from "mongoose";
 
 const topicSchema = new Schema(
   {
-    title: String,
-    description: String,
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    author: {
+      type: String,
+      required: true,
+      trim: true,
+      default: "Anonymous",
+    },
+    category: {
+      type: String,
+      required: true,
+      enum: ["General", "Technology", "Business", "Education", "Health", "Other"],
+      default: "General",
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive", "Archived"],
+      default: "Active",
+    },
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High", "Urgent"],
+      default: "Medium",
+    },
   },
   {
     timestamps: true,

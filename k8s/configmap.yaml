@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextjs-config
+  namespace: nextjs-app
+  labels:
+    app: nextjs-app
+data:
+  MONGO_URI: "mongodb://mongodb-service.nextjs-app.svc.cluster.local:27017/nextjsapp"
+  SITE_URL: "http://nextjs-service.nextjs-app.svc.cluster.local:3000"

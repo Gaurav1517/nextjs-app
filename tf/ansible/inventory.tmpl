@@ -1,0 +1,10 @@
+[k8s_master]
+k8s-master ansible_host=${k8s_ip} ansible_user=ubuntu
+
+[controller]
+controller ansible_host=127.0.0.1 ansible_connection=local ansible_user=ubuntu
+
+[all:vars]
+ansible_ssh_private_key_file=/home/ubuntu/keys/myproject.pem
+ansible_python_interpreter=/usr/bin/python3
+ansible_host_key_checking=False

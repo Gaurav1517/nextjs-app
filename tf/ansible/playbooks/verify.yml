@@ -1,0 +1,27 @@
+- hosts: k8s_master
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Check deployment status
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      shell: |
+        echo "Checking pods in nextjs-app namespace:"
+        kubectl get pods -n nextjs-app -o wide
+        echo ""
+        echo "Checking services in nextjs-app namespace:"
+        kubectl get svc -n nextjs-app -o wide
+        echo ""
+        echo "Checking PVC in nextjs-app namespace:"
+        kubectl get pvc -n nextjs-app
+        echo ""
+        echo "Checking PV:"
+        kubectl get pv
+      args:
+        executable: /bin/bash
+      register: deployment_status
+
+    - name: Display deployment status
+      debug:
+        var: deployment_status.stdout_lines

@@ -58,6 +58,10 @@ export default function TopicsList() {
               <th className="py-3 px-4">S.No.</th>
               <th className="py-3 px-4">Title</th>
               <th className="py-3 px-4">Description</th>
+              <th className="py-3 px-4">Author</th>
+              <th className="py-3 px-4">Category</th>
+              <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4">Priority</th>
               <th className="py-3 px-4">Actions</th>
             </tr>
           </thead>
@@ -67,6 +71,10 @@ export default function TopicsList() {
                 <td className="py-3 px-4 border-b border-slate-300">{index + 1}</td> {/* Add sequence number */}
                 <td className="py-3 px-4 border-b border-slate-300">{t.title}</td>
                 <td className="py-3 px-4 border-b border-slate-300">{t.description}</td>
+                <td className="py-3 px-4 border-b border-slate-300">{t.author}</td>
+                <td className="py-3 px-4 border-b border-slate-300">{t.category}</td>
+                <td className="py-3 px-4 border-b border-slate-300">{t.status}</td>
+                <td className="py-3 px-4 border-b border-slate-300">{t.priority}</td>
                 <td className="py-3 px-4 border-b border-slate-300 flex gap-2">
                   <RemoveBtn id={t._id} />
                   <Link href={`${SITE_URL}/editTopic/${t._id}`}>

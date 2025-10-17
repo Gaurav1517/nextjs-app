@@ -1,0 +1,9 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Copy k8s directory to playbooks
+      copy:
+        src: k8s/
+        dest: playbooks/
+        directory_mode: '0755'

@@ -1,0 +1,33 @@
+- hosts: k8s_master
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Create k8s directory on remote server
+      file:
+        path: /home/ubuntu/k8s
+        state: directory
+        mode: '0755'
+
+    - name: Copy k8s manifests to remote server
+      copy:
+        src: "playbooks/k8s/{{ item }}"
+        dest: /home/ubuntu/k8s/
+        mode: '0644'
+      loop:
+        - namespace.yaml
+        - configmap.yaml
+        - secret.yaml
+        - pv-pvc.yaml
+        - mongodb-statefulset.yaml
+        - nextjs-deployment.yaml
+
+    - name: Deploy k8s manifests
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      shell: |
+        kubectl apply -f /home/ubuntu/k8s/
+        kubectl get pods -n nextjs-app
+        kubectl get svc -n nextjs-app
+      args:
+        executable: /bin/bash

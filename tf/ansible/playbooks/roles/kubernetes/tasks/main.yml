@@ -1,0 +1,162 @@
+---
+- name: Disable swap
+  shell: |
+    swapoff -a
+    sed -i.bak '/ swap / s/^/#/' /etc/fstab
+  args:
+    executable: /bin/bash
+
+- name: Load kernel modules
+  shell: |
+    modprobe overlay
+    modprobe br_netfilter
+  args:
+    executable: /bin/bash
+
+- name: Add kernel modules to load at boot
+  copy:
+    dest: /etc/modules-load.d/containerd.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: 0644
+
+- name: Set sysctl params for Kubernetes networking
+  copy:
+    dest: /etc/sysctl.d/99-kubernetes-cri.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+    mode: 0644
+
+- name: Apply sysctl settings
+  command: sysctl --system
+
+- name: Install required packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+    update_cache: yes
+
+- name: Add Docker GPG key
+  shell: |
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+    executable: /bin/bash
+
+- name: Add Docker repository
+  shell: |
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  args:
+    creates: /etc/apt/sources.list.d/docker.list
+    executable: /bin/bash
+
+- name: Update apt and install containerd
+  apt:
+    name: containerd.io
+    state: present
+    update_cache: yes
+
+- name: Ensure /etc/containerd directory exists
+  file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+
+- name: Regenerate containerd config with SystemdCgroup fix
+  shell: |
+    containerd config default | tee /etc/containerd/config.toml
+  args:
+    executable: /bin/bash
+
+- name: Enable SystemdCgroup in containerd config
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: '^(\s*)SystemdCgroup = false'
+    replace: '\1SystemdCgroup = true'
+
+- name: Restart and enable containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
+
+- name: Check containerd status
+  command: systemctl status containerd
+  register: containerd_status
+  ignore_errors: yes
+
+- name: Show containerd status output
+  debug:
+    var: containerd_status.stdout_lines
+
+- name: Add Kubernetes GPG key and repository
+  shell: |
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /" > /etc/apt/sources.list.d/kubernetes.list
+    apt-get update -y
+  args:
+    creates: /etc/apt/sources.list.d/kubernetes.list
+    executable: /bin/bash
+
+- name: Install Kubernetes components
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: yes
+
+- name: Hold Kubernetes packages
+  shell: apt-mark hold kubelet kubeadm kubectl
+
+- name: Enable and start kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+
+- name: Initialize Kubernetes control plane
+  shell: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: Create .kube directory for ubuntu user
+  file:
+    path: /home/ubuntu/.kube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: 0755
+
+- name: Copy admin.conf to user's kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/ubuntu/.kube/config
+    remote_src: yes
+    owner: ubuntu
+    group: ubuntu
+    mode: 0644
+
+- name: Install Calico CNI plugin
+  become_user: ubuntu
+  environment:
+    KUBECONFIG: /home/ubuntu/.kube/config
+  shell: |
+    kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.5/manifests/calico.yaml
+  ignore_errors: yes
+
+- name: Save kubeadm join command for workers
+  shell: kubeadm token create --print-join-command > /root/join-command.txt
