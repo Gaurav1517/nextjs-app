@@ -1,6 +1,8 @@
 .terraform/
 .terraform.lock.hcl
 keys/*
+# Allow .gitkeep so the folder is tracked
+!keys/.gitkeep
 *.tfstate
 *.tfstate.backup
 ansible/inventory.ini
