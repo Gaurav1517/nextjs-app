@@ -6,7 +6,7 @@ import { SITE_URL } from "@/constants/constants";
 
 const getTopics = async () => {
   try {
-    const apiUrl = `${SITE_URL}/api/topics`;
+    const apiUrl = `/api/topics`;
     const res = await fetch(apiUrl, {
       cache: "no-store",
     });
@@ -77,7 +77,7 @@ export default function TopicsList() {
                 <td className="py-3 px-4 border-b border-slate-300">{t.priority}</td>
                 <td className="py-3 px-4 border-b border-slate-300 flex gap-2">
                   <RemoveBtn id={t._id} />
-                  <Link href={`${SITE_URL}/editTopic/${t._id}`}>
+                  <Link href={`/editTopic/${t._id}`}>
                     <HiPencilAlt size={24} />
                   </Link>
                 </td>

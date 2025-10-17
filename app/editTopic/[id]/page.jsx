@@ -3,7 +3,7 @@ import { SITE_URL } from "@/constants/constants";
 
 const getTopicById = async (id) => {
   try {
-    const res = await fetch(`${SITE_URL}/api/topics/${id}`, {
+    const res = await fetch(`http://localhost:3000/api/topics/${id}`, {
       cache: "no-store",
     });
 
