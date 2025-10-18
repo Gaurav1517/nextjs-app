@@ -14,7 +14,7 @@ in the default VPC using Terraform. Terraform will:
    and install Kubernetes/Docker on the K8s control plane
 
 ## How it works (quick)
-- Run `terraform init` then `terraform apply -auto-approve`.
+- Run `terraform init` then `terraform validate`, `terraform fmt`, `terraform plan`, and  `terraform apply -auto-approve`.
 - Terraform saves the private key to `keys/myproject.pem` (don't commit this).
 - After apply finishes, outputs show the public/private IPs of both instances.
 - If the remote Ansible run fails, check `terraform apply` output; you can SSH into the controller
