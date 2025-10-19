@@ -160,3 +160,26 @@
 
 - name: Save kubeadm join command for workers
   shell: kubeadm token create --print-join-command > /root/join-command.txt
+
+# SSH Configuration Adjustments
+- name: Un-comment PubkeyAuthentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#\s*PubkeyAuthentication'
+    line: 'PubkeyAuthentication yes'
+    state: present
+    backrefs: yes
+
+- name: Un-comment PasswordAuthentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#\s*PasswordAuthentication'
+    line: 'PasswordAuthentication yes'
+    state: present
+    backrefs: yes
+
+- name: Restart SSH service
+  systemd:
+    name: ssh
+    state: restarted
+    enabled: true    

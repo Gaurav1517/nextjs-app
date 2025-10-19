@@ -162,6 +162,12 @@ resource "aws_instance" "jenkins" {
   user_data              = file("${path.module}/userdata/jenkins_userdata.sh")
   tags                   = merge(var.tags, { Name = "jenkins-controller" })
 
+  ebs_block_device {
+    device_name = "/dev/sda1"
+    volume_size = 30
+    volume_type = "gp3"
+  }
+
   provisioner "remote-exec" {
     connection {
       type        = "ssh"
@@ -238,6 +244,12 @@ resource "aws_instance" "k8s_master" {
   vpc_security_group_ids = [aws_security_group.k8s_master_sg.id]
   user_data              = file("${path.module}/userdata/k8s_userdata.sh")
   tags                   = merge(var.tags, { Name = "k8s-control-plane" })
+
+  ebs_block_device {
+    device_name = "/dev/sda2"
+    volume_size = 30
+    volume_type = "gp3"
+  }
 }
 
 resource "local_file" "ansible_inventory" {
@@ -246,24 +258,7 @@ resource "local_file" "ansible_inventory" {
   depends_on = [aws_instance.k8s_master]
 }
 
-resource "null_resource" "jenkins_password" {
-  depends_on = [aws_instance.jenkins]
 
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.key.private_key_pem
-      host        = aws_instance.jenkins.public_ip
-      timeout     = "2m"
-    }
-    inline = [
-      "sleep 60",
-      "echo 'Jenkins initial admin password:'",
-      "sudo cat /var/lib/jenkins/secrets/initialAdminPassword >> /tmp/initialPass.txt || true "
-    ]
-  }
-}
 
 
 
