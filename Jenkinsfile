@@ -8,7 +8,10 @@ pipeline {
 
     environment {
         DOCKER_USERNAME = 'gchauhan1517'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-creds' // Must match your Jenkins credentials ID
+        DOCKER_CREDENTIALS_ID = 'docker-hub-creds'
+        EC2_IP = '192.168.44.131'
+        SSH_CRED = 'ssh-key-cred'
+        EC2_NAME = 'ubuntu'
     }
 
     stages {
@@ -17,18 +20,6 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/Gaurav1517/nextjs-app.git'
             }
         }
-
-        // stage('Install Dependencies') {
-        //     steps {
-        //         sh 'npm install'
-        //     }
-        // }
-
-        // stage('Build Next.js App') {
-        //     steps {
-        //         sh 'npm run build'
-        //     }
-        // }
 
         stage('Docker Image Build') {
             steps {
@@ -53,8 +44,8 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {
-                        sh "docker login -u '${docker_user}' -p '${docker_pass}'"
                         def JOB = env.JOB_NAME.toLowerCase()
+                        sh "echo '${docker_pass}' | docker login -u '${docker_user}' --password-stdin"
                         sh "docker push ${docker_user}/${JOB}:v${BUILD_NUMBER}"
                         sh "docker push ${docker_user}/${JOB}:latest"
                     }
@@ -62,30 +53,43 @@ pipeline {
             }
         }
 
-        stage('Docker Image Cleanup') {
+        stage('Docker Cleanup') {
             steps {
-                script {
-                    sh "docker image prune -af"
-                }
+                sh "docker image prune -af"
             }
         }
+        
 
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    // Copy k8s directory to Ansible workspace using Ansible
-                    sh "cd tf/ansible && ansible-playbook -i inventory.ini playbooks/copy.yml"
-                    // Run Ansible playbook to deploy
-                    sh "cd tf/ansible && ansible-playbook -i inventory.ini playbooks/deploy.yml || true"
+                sshagent (credentials: ["${SSH_CRED}"]) {
+                    script {
+                        // Ensure 'k8s' directory exists in workspace
+                        sh "ls -la k8s"
+
+                        // Copy manifests to EC2
+                        sh "scp -o StrictHostKeyChecking=no -r k8s ${EC2_NAME}@${EC2_IP}:/home/${EC2_NAME}/"
+
+                        // Delete existing deployment (ignore errors)
+                        sh "ssh -o StrictHostKeyChecking=no ${EC2_NAME}@${EC2_IP} 'kubectl delete -f /home/${EC2_NAME}/k8s/ || true'"
+
+                        // Apply namespace first
+                        sh "ssh -o StrictHostKeyChecking=no ${EC2_NAME}@${EC2_IP} 'kubectl apply -f /home/${EC2_NAME}/k8s/namespace.yaml'"
+
+                        // Apply all remaining manifests
+                        sh "ssh -o StrictHostKeyChecking=no ${EC2_NAME}@${EC2_IP} 'kubectl apply -f /home/${EC2_NAME}/k8s/'"
+
+                        // Optional wait
+                        sleep(time: 30, unit: 'SECONDS')
+                    }
                 }
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                script {
-                    // Run Ansible to check deployment status
-                    sh "cd tf/ansible && ansible-playbook -i inventory.ini playbooks/verify.yml || true"
+                sshagent (credentials: ["${SSH_CRED}"]) {
+                    sh "ssh -o StrictHostKeyChecking=no ${EC2_NAME}@${EC2_IP} 'kubectl get all -n nextjs-app'"
                 }
             }
         }
@@ -93,10 +97,10 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline completed.'
+            echo 'Pipeline successfully ran & deployed to Kubernetes! 🎉'
         }
         failure {
-            echo 'Pipeline failed.'
+            echo 'Pipeline failed. 😭'
         }
     }
 }
