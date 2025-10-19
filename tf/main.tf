@@ -260,7 +260,7 @@ resource "null_resource" "jenkins_password" {
     inline = [
       "sleep 60",
       "echo 'Jenkins initial admin password:'",
-      "sudo cat /var/lib/jenkins/secrets/initialAdminPassword 2>/dev/null || echo 'Password not yet available, Jenkins may still be starting'"
+      "sudo cat /var/lib/jenkins/secrets/initialAdminPassword >> /tmp/initialPass.txt || true "
     ]
   }
 }
