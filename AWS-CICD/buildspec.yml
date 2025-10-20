@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      echo "Setting environment variables..."
+      export SITE_URL=$SITE_URL_ENV
+      echo "Environment variable SITE_URL set to $SITE_URL"
+
+  pre_build:
+    commands:
+      echo "Installing dependencies..."
+      npm ci
+
+  build:
+    commands:
+      echo "Building the project..."
+      npm run build
+
+  post_build:
+    commands:
+      # Start the application (not typically done in CodeBuild, as it’s often used for build purposes)
+      echo "Build complete, but not starting the app in CodeBuild"
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: build  # Change this if your build output is in a different folder
+
+cache:
+  paths:
+    - 'node_modules/**/*'
